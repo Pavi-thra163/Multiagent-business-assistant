@@ -1,0 +1,6 @@
+{
+  "name": "AI Multi-Agent Business Assistant",
+  "description": "An interactive multi-agent workspace that coordinates specialized Research, Planning, Coding, Testing, and Documentation agents to complete business-related software and product tasks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

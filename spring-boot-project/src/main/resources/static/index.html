@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Multi-Agent Business Assistant</title>
+    <!-- Tailwind CSS CDN for elegant utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- jsPDF CDN for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen transition-colors duration-300" id="bodyNode">
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm w-full">
+            <div class="relative w-16 h-16 mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+            </div>
+            <p class="text-gray-900 font-semibold text-lg" id="loadingText">Processing Task...</p>
+            <p class="text-gray-500 text-sm mt-1 text-center" id="loadingSubtext">Please wait while the Multi-Agent system works.</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-3"></div>
+
+    <!-- 1. AUTHENTICATION PAGES (LOGIN / REGISTER) -->
+    <div id="authContainer" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-100 max-w-md w-full p-8 relative overflow-hidden">
+            <!-- Decorative gradient element -->
+            <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+            
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-600 text-2xl mb-4">
+                    <i class="fa-solid fa-users-gear"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900">Multi-Agent Assistant</h1>
+                <p class="text-gray-500 text-sm mt-1">Enterprise AI Orchestration Workspace</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-100 mb-6">
+                <button onclick="toggleAuthTab('login')" id="tabLogin" class="flex-1 pb-3 text-center font-medium border-b-2 border-blue-600 text-blue-600 focus:outline-none">Login</button>
+                <button onclick="toggleAuthTab('register')" id="tabRegister" class="flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4" onsubmit="handleLogin(event)">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                            <i class="fa-regular fa-envelope"></i>
+                        </span>
+                        <input type="email" id="loginEmail" required placeholder="name@company.com" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition text-sm">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition shadow-lg shadow-blue-600/10 text-sm mt-2">
+                    Sign In <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </form>
+
+            <!-- Register Form (Hidden initially) -->
+            <form id="registerForm" class="space-y-4 hidden" onsubmit="handleRegister(event)">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Full Name</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                            <i class="fa-regular fa-user"></i>
+                        </span>
+                        <input type="text" id="regName" required placeholder="John Doe" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                            <i class="fa-regular fa-envelope"></i>
+                        </span>
+                        <input type="email" id="regEmail" required placeholder="name@company.com" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="regPassword" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition text-sm">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition shadow-lg shadow-blue-600/10 text-sm mt-2">
+                    Create Account <i class="fa-solid fa-check ml-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. MAIN APPLICATION WORKSPACE (DASHBOARD & DETAILS) -->
+    <div id="mainContainer" class="hidden flex-grow flex flex-col md:flex-row">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800">
+            <!-- Sidebar Header -->
+            <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-white tracking-wide">Multi-Agent</h2>
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Workspace</span>
+                    </div>
+                </div>
+                <!-- Dark Mode Toggle Button -->
+                <button onclick="toggleDarkMode()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-regular fa-moon" id="themeIcon"></i>
+                </button>
+            </div>
+
+            <!-- Navigation List -->
+            <nav class="flex-grow p-4 space-y-1.5">
+                <button onclick="showView('dashboard')" id="navDashboard" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition text-white bg-slate-800/80">
+                    <i class="fa-solid fa-chart-line w-4 text-center text-blue-500"></i> Dashboard
+                </button>
+                <button onclick="showView('workspace')" id="navWorkspace" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-wand-magic-sparkles w-4 text-center"></i> Create Task
+                </button>
+                <button onclick="showView('history')" id="navHistory" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-history w-4 text-center"></i> Task History
+                </button>
+                <button onclick="showView('profile')" id="navProfile" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                    <i class="fa-regular fa-user w-4 text-center"></i> User Profile
+                </button>
+            </nav>
+
+            <!-- User Status in Sidebar Footer -->
+            <div class="p-4 border-t border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold uppercase" id="sidebarAvatar">
+                        U
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-xs font-semibold text-white truncate" id="sidebarName">Active User</p>
+                        <span class="text-[10px] text-slate-500 truncate" id="sidebarEmail">user@example.com</span>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 transition" title="Log Out">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Right Content Panels -->
+        <main class="flex-grow p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+            
+            <!-- HEADER BAR -->
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900" id="viewHeaderTitle">Agent Dashboard</h1>
+                    <p class="text-gray-500 text-sm mt-0.5" id="viewHeaderSub">Monitor orchestration performance, recent activities, and metrics.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="showView('workspace')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium transition shadow-lg shadow-blue-600/10 flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> New Project Task
+                    </button>
+                </div>
+            </header>
+
+            <!-- DYNAMIC VIEW CONTAINERS -->
+
+            <!-- 2.1 DASHBOARD VIEW -->
+            <div id="viewDashboard" class="space-y-6">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Request Runs</span>
+                            <h3 class="text-3xl font-extrabold text-gray-900 mt-1" id="statTotal">1</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-server"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Completed Tasks</span>
+                            <h3 class="text-3xl font-extrabold text-emerald-600 mt-1" id="statCompleted">1</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                            <i class="fa-regular fa-circle-check"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Agents</span>
+                            <h3 class="text-3xl font-extrabold text-indigo-600 mt-1">5</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Success Rate</span>
+                            <h3 class="text-3xl font-extrabold text-blue-600 mt-1">100%</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities & Agent status -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Recent Tasks list -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-gray-900 text-base">Recent Tasks</h3>
+                            <button onclick="showView('history')" class="text-blue-600 hover:text-blue-700 text-xs font-semibold">View All Logs</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="text-xs text-gray-400 font-semibold uppercase tracking-wider border-b border-gray-100">
+                                        <th class="py-3">Prompt Request</th>
+                                        <th class="py-3">Created</th>
+                                        <th class="py-3">Status</th>
+                                        <th class="py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentTasksTableBody" class="divide-y divide-gray-100">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Agent Performance Panel -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                        <h3 class="font-bold text-gray-900 text-base mb-4">Agent Network Status</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-900">Research Agent</p>
+                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Analyze Stack &amp; Scope</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">ONLINE</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-900">Planning Agent</p>
+                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Project Timeline/Roadmap</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">ONLINE</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-900">Coding Agent</p>
+                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Design Schemes &amp; APIs</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">ONLINE</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-900">Testing Agent</p>
+                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Cases &amp; Sec Validation</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">ONLINE</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-900">Documentation Agent</p>
+                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Manuals &amp; README</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">ONLINE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.2 CREATE TASK WORKSPACE VIEW -->
+            <div id="viewWorkspace" class="space-y-6 hidden">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 class="font-bold text-gray-900 text-lg mb-2">Create New Agent Task</h3>
+                    <p class="text-gray-500 text-sm mb-6">Input a project idea or business scope description. The system will coordinate 5 specialized agents to draft the full specification plan.</p>
+
+                    <!-- Prompt input card -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Project Prompt / Scope Details</label>
+                            <textarea id="taskPromptInput" rows="4" placeholder="Example: Create a modern CRM software containing customer interactions logging, auto-email summaries, and lead pipelines..." class="w-full p-4 bg-gray-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-blue-500 transition text-sm"></textarea>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="flex gap-2">
+                                <button onclick="useTemplate('ecommerce')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition">E-Commerce</button>
+                                <button onclick="useTemplate('inventory')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition">Inventory Track</button>
+                                <button onclick="useTemplate('crm')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition">CRM SaaS</button>
+                            </div>
+                            <button onclick="submitWorkflowTask()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition text-sm shadow-lg shadow-blue-600/10 flex items-center gap-2">
+                                Launch Multi-Agent Workflow <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executions Progress/Timeline (Will toggle display when active) -->
+                <div id="executionTimelineCard" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 hidden">
+                    <h3 class="font-bold text-gray-900 text-base mb-6">Sequential Orchestration Timeline</h3>
+                    <div class="relative pl-8 space-y-8 before:absolute before:inset-y-1 before:left-3.5 before:w-0.5 before:bg-slate-100">
+                        <!-- timeline steps -->
+                        <div class="relative flex items-start gap-4">
+                            <span class="absolute -left-8 w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold" id="timeStep1">1</span>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-900" id="timeTitle1">Research Agent Stack Analysis</h4>
+                                <p class="text-xs text-gray-500 mt-0.5" id="timeDesc1">Recommending appropriate frontend, database, and backend frameworks.</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-start gap-4">
+                            <span class="absolute -left-8 w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold" id="timeStep2">2</span>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-900" id="timeTitle2">Planning Agent Deliverables Roadmap</h4>
+                                <p class="text-xs text-gray-500 mt-0.5" id="timeDesc2">Creating milestones structure, timeline phases, and risk analysis parameters.</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-start gap-4">
+                            <span class="absolute -left-8 w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold" id="timeStep3">3</span>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-900" id="timeTitle3">Coding Agent Database &amp; APIs Architecture</h4>
+                                <p class="text-xs text-gray-500 mt-0.5" id="timeDesc3">Compiling detailed directory trees, entity attributes, and API specifications.</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-start gap-4">
+                            <span class="absolute -left-8 w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold" id="timeStep4">4</span>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-900" id="timeTitle4">Testing Agent QA Test Suite Matrix</h4>
+                                <p class="text-xs text-gray-500 mt-0.5" id="timeDesc4">Compiling integration testing parameters and sanitization boundaries.</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-start gap-4">
+                            <span class="absolute -left-8 w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold" id="timeStep5">5</span>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-900" id="timeTitle5">Documentation Agent Manual Composition</h4>
+                                <p class="text-xs text-gray-500 mt-0.5" id="timeDesc5">Drafting modular README profiles, environment configs, and installation logs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.3 TASK HISTORY VIEW -->
+            <div id="viewHistory" class="space-y-6 hidden">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <h3 class="font-bold text-gray-900 text-lg">Task Execution History Log</h3>
+                        <div class="relative max-w-xs w-full">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                            </span>
+                            <input type="text" id="historySearchInput" oninput="filterHistoryTable()" placeholder="Search requests..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition text-xs">
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="text-xs text-gray-400 font-semibold uppercase tracking-wider border-b border-gray-100">
+                                    <th class="py-3 px-4">ID</th>
+                                    <th class="py-3 px-4">Original Prompt Request</th>
+                                    <th class="py-3 px-4">Created Timestamp</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="divide-y divide-gray-100">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.4 TASK DETAILS VIEW -->
+            <div id="viewTaskDetails" class="space-y-6 hidden">
+                <div class="flex items-center justify-between">
+                    <button onclick="showView('history')" class="text-slate-500 hover:text-slate-800 text-sm font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-left"></i> Back to History
+                    </button>
+                    <button id="btnDownloadPDF" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                        <i class="fa-solid fa-file-pdf"></i> Download PDF Report
+                    </button>
+                </div>
+
+                <!-- Prompt scope banner -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm border border-slate-800">
+                    <span class="text-[10px] uppercase font-bold text-blue-400 tracking-wider">PROJECT ASSIGNMENT SCOPE</span>
+                    <h2 class="text-xl font-bold text-white mt-1" id="detailPromptHeader">Build a Real-Time Stock Tracker</h2>
+                    <p class="text-xs text-slate-400 mt-2" id="detailTimestampHeader">Compiled on: 2026-07-05 13:45 UTC</p>
+                </div>
+
+                <!-- Tabs for agent results -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div class="flex border-b border-gray-100 overflow-x-auto" id="detailTabsContainer">
+                        <button onclick="toggleDetailTab('report')" id="tabDetail_report" class="pb-3 px-4 text-center font-bold border-b-2 border-blue-600 text-blue-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap">Manager Report</button>
+                        <button onclick="toggleDetailTab('research')" id="tabDetail_research" class="pb-3 px-4 text-center font-bold border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap">Research</button>
+                        <button onclick="toggleDetailTab('planning')" id="tabDetail_planning" class="pb-3 px-4 text-center font-bold border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap">Planning</button>
+                        <button onclick="toggleDetailTab('coding')" id="tabDetail_coding" class="pb-3 px-4 text-center font-bold border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap">Coding Specs</button>
+                        <button onclick="toggleDetailTab('testing')" id="tabDetail_testing" class="pb-3 px-4 text-center font-bold border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap">QA &amp; Tests</button>
+                        <button onclick="toggleDetailTab('documentation')" id="tabDetail_documentation" class="pb-3 px-4 text-center font-bold border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap">Documentation</button>
+                    </div>
+
+                    <!-- Inner Results View panel -->
+                    <div class="py-6 px-2 min-h-[300px]">
+                        <div id="detailPanelContent" class="prose max-w-none text-gray-800 text-sm leading-relaxed space-y-4">
+                            <!-- Raw Markdown/Structured output rendered dynamic -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.5 USER PROFILE VIEW -->
+            <div id="viewProfile" class="space-y-6 hidden">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 max-w-md">
+                    <h3 class="font-bold text-gray-900 text-lg mb-6">User Account Settings</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                            <div class="w-16 h-16 rounded-full bg-blue-600 text-white text-xl font-bold flex items-center justify-center uppercase" id="profileAvatar">
+                                JD
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-900 text-base" id="profileName">Jane Doe</h4>
+                                <p class="text-xs text-gray-400" id="profileEmail">jane.doe@example.com</p>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-100 pt-4 space-y-3">
+                            <div class="flex justify-between text-xs">
+                                <span class="font-semibold text-gray-400">Account ID:</span>
+                                <span class="font-mono text-gray-700" id="profileId">user-01</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="font-semibold text-gray-400">Role Status:</span>
+                                <span class="font-semibold text-blue-600">Enterprise AI Architect</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="font-semibold text-gray-400">Session Status:</span>
+                                <span class="font-semibold text-emerald-600"><i class="fa-solid fa-circle text-[8px] mr-1"></i> Connected Securely</span>
+                            </div>
+                        </div>
+                        <button onclick="handleLogout()" class="w-full mt-4 py-2.5 border border-rose-100 hover:bg-rose-50 text-rose-600 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out from Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 border-t border-slate-800 text-slate-500 py-6 text-center text-xs mt-auto">
+        <p>© 2026 AI Multi-Agent Business Assistant. Designed for High Performance Portfolio Deployment.</p>
+    </footer>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- INTERACTIVE ENGINE (VANILLA JAVASCRIPT CORE) -->
+    <!-- ---------------------------------------------------- -->
+    <script>
+        // State management
+        let state = {
+            token: localStorage.getItem("jwt_token") || "",
+            currentUser: null,
+            tasks: [],
+            currentView: "dashboard",
+            currentDetailTask: null,
+            activeDetailTab: "report"
+        };
+
+        const API_BASE = "/api";
+
+        // Initialize App
+        window.addEventListener("DOMContentLoaded", async () => {
+            if (state.token) {
+                const profileSuccess = await loadUserProfile();
+                if (profileSuccess) {
+                    showMainApp();
+                } else {
+                    localStorage.removeItem("jwt_token");
+                    state.token = "";
+                    showAuthScreen();
+                }
+            } else {
+                showAuthScreen();
+            }
+        });
+
+        // ----------------------------------------------------
+        // UTILITIES
+        // ----------------------------------------------------
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = `flex items-center gap-3 px-4 py-3 bg-white text-gray-900 border shadow-lg rounded-xl text-xs transition duration-300 transform translate-x-10 opacity-0`;
+            
+            let color = "text-blue-500 border-blue-100";
+            let icon = "fa-circle-info";
+            if (type === "success") {
+                color = "text-emerald-500 border-emerald-100";
+                icon = "fa-circle-check";
+            } else if (type === "error") {
+                color = "text-rose-500 border-rose-100";
+                icon = "fa-triangle-exclamation";
+            }
+
+            toast.innerHTML = `
+                <span class="${color} text-base"><i class="fa-solid ${icon}"></i></span>
+                <span class="font-medium">${message}</span>
+            `;
+            container.appendChild(toast);
+
+            // Animate In
+            setTimeout(() => {
+                toast.classList.remove("translate-x-10", "opacity-0");
+            }, 10);
+
+            // Remove Out
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "translate-x-10");
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function showLoading(text) {
+            document.getElementById("loadingOverlay").classList.remove("hidden");
+            document.getElementById("loadingText").innerText = text;
+        }
+
+        function hideLoading() {
+            document.getElementById("loadingOverlay").classList.add("hidden");
+        }
+
+        // Toggle Auth View (Login / Register Tabs)
+        function toggleAuthTab(tab) {
+            const loginForm = document.getElementById("loginForm");
+            const registerForm = document.getElementById("registerForm");
+            const tabLogin = document.getElementById("tabLogin");
+            const tabRegister = document.getElementById("tabRegister");
+
+            if (tab === "login") {
+                loginForm.classList.remove("hidden");
+                registerForm.classList.add("hidden");
+                tabLogin.className = "flex-1 pb-3 text-center font-bold border-b-2 border-blue-600 text-blue-600 focus:outline-none text-sm";
+                tabRegister.className = "flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-sm";
+            } else {
+                loginForm.classList.add("hidden");
+                registerForm.classList.remove("hidden");
+                tabLogin.className = "flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-sm";
+                tabRegister.className = "flex-1 pb-3 text-center font-bold border-b-2 border-blue-600 text-blue-600 focus:outline-none text-sm";
+            }
+        }
+
+        // Dark Mode toggle
+        function toggleDarkMode() {
+            const html = document.getElementById("bodyNode");
+            const icon = document.getElementById("themeIcon");
+            if (html.classList.contains("bg-gray-50")) {
+                html.classList.remove("bg-gray-50", "text-gray-800");
+                html.classList.add("bg-slate-950", "text-slate-100");
+                icon.className = "fa-regular fa-sun text-amber-400";
+                showToast("Dark Mode enabled", "info");
+            } else {
+                html.classList.remove("bg-slate-950", "text-slate-100");
+                html.classList.add("bg-gray-50", "text-gray-800");
+                icon.className = "fa-regular fa-moon text-slate-400";
+                showToast("Light Mode enabled", "info");
+            }
+        }
+
+        // ----------------------------------------------------
+        // AUTHENTICATION LOGIC (API FETCHES)
+        // ----------------------------------------------------
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            showLoading("Signing in securely...");
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem("jwt_token", data.token);
+                    state.token = data.token;
+                    state.currentUser = data.user;
+                    showToast(`Welcome back, ${data.user.name}!`, "success");
+                    showMainApp();
+                } else {
+                    showToast(data.error || "Authentication failed", "error");
+                }
+            } catch (err) {
+                showToast("Server connection error during login.", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById("regName").value;
+            const email = document.getElementById("regEmail").value;
+            const password = document.getElementById("regPassword").value;
+
+            showLoading("Creating enterprise account...");
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem("jwt_token", data.token);
+                    state.token = data.token;
+                    state.currentUser = data.user;
+                    showToast("Registration successful!", "success");
+                    showMainApp();
+                } else {
+                    showToast(data.error || "Registration failed", "error");
+                }
+            } catch (err) {
+                showToast("Server connection error during registration.", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("jwt_token");
+            state.token = "";
+            state.currentUser = null;
+            state.tasks = [];
+            showAuthScreen();
+            showToast("Logged out successfully.", "info");
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: { "Authorization": `Bearer ${state.token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    state.currentUser = data.user;
+                    return true;
+                }
+            } catch (err) {
+                console.error("Error logging user profile", err);
+            }
+            return false;
+        }
+
+        function showAuthScreen() {
+            document.getElementById("authContainer").classList.remove("hidden");
+            document.getElementById("mainContainer").classList.add("hidden");
+        }
+
+        function showMainApp() {
+            document.getElementById("authContainer").classList.add("hidden");
+            document.getElementById("mainContainer").classList.remove("hidden");
+
+            // Setup Profile text
+            if (state.currentUser) {
+                const nameParts = state.currentUser.name.split(" ");
+                const initials = nameParts.length > 1 ? nameParts[0][0] + nameParts[1][0] : nameParts[0][0];
+                
+                document.getElementById("sidebarAvatar").innerText = initials.toUpperCase();
+                document.getElementById("sidebarName").innerText = state.currentUser.name;
+                document.getElementById("sidebarEmail").innerText = state.currentUser.email;
+
+                // Profile card fields
+                document.getElementById("profileAvatar").innerText = initials.toUpperCase();
+                document.getElementById("profileName").innerText = state.currentUser.name;
+                document.getElementById("profileEmail").innerText = state.currentUser.email;
+                document.getElementById("profileId").innerText = state.currentUser.id;
+            }
+
+            // Sync metrics and logs
+            syncHistoryLogs();
+        }
+
+        // ----------------------------------------------------
+        // NAVIGATION PANEL SWITCHER
+        // ----------------------------------------------------
+        function showView(viewName) {
+            state.currentView = viewName;
+            
+            const views = ["dashboard", "workspace", "history", "taskDetails", "profile"];
+            views.forEach(v => {
+                const el = document.getElementById(`view${v.charAt(0).toUpperCase() + v.slice(1)}`);
+                if (v === viewName) {
+                    el.classList.remove("hidden");
+                } else {
+                    el.classList.add("hidden");
+                }
+            });
+
+            // Handle Nav active state
+            const navButtons = ["Dashboard", "Workspace", "History", "Profile"];
+            navButtons.forEach(btn => {
+                const el = document.getElementById(`nav${btn}`);
+                if (btn.toLowerCase() === viewName) {
+                    el.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition text-white bg-slate-800/80";
+                } else {
+                    el.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white text-slate-400";
+                }
+            });
+
+            // Dynamic header label
+            const titleEl = document.getElementById("viewHeaderTitle");
+            const subEl = document.getElementById("viewHeaderSub");
+            if (viewName === "dashboard") {
+                titleEl.innerText = "Agent Dashboard";
+                subEl.innerText = "Monitor orchestration performance, recent activities, and metrics.";
+            } else if (viewName === "workspace") {
+                titleEl.innerText = "Multi-Agent Workspace";
+                subEl.innerText = "Delegate product tasks and requirements to specialized pipeline nodes.";
+            } else if (viewName === "history") {
+                titleEl.innerText = "Task Execution History Logs";
+                subEl.innerText = "Review historic task outputs, configurations, and download reports.";
+            } else if (viewName === "taskDetails") {
+                titleEl.innerText = "Executive Output Spec";
+                subEl.innerText = "Deep-dive view of combined outputs compiled by the Manager Agent.";
+            } else if (viewName === "profile") {
+                titleEl.innerText = "User Account Space";
+                subEl.innerText = "View security configurations and user properties.";
+            }
+        }
+
+        // ----------------------------------------------------
+        // TASK WORKSPACE LOGIC (API SUBMISSIONS)
+        // ----------------------------------------------------
+        function useTemplate(type) {
+            const prompts = {
+                ecommerce: "Build an enterprise-grade multi-vendor E-Commerce Platform with real-time stock notifications, Stripe payment integration, order tracking, and a merchant analytics dashboard.",
+                inventory: "Create an Inventory Management System featuring low-stock automatic alerts, supply chain supplier catalog integrations, and dynamic PDF report exports.",
+                crm: "Develop a secure CRM SaaS platform containing sales pipelines, lead status updates, auto-reminders, and team interaction logs."
+            };
+            document.getElementById("taskPromptInput").value = prompts[type] || "";
+            showToast("Template prompt inserted into workspace.", "success");
+        }
+
+        async function submitWorkflowTask() {
+            const prompt = document.getElementById("taskPromptInput").value;
+            if (!prompt.trim()) {
+                showToast("Please enter a project prompt to generate tasks.", "error");
+                return;
+            }
+
+            // Display loading overlay
+            showLoading("Launching Multi-Agent system... Coordinating Research Agent");
+            document.getElementById("executionTimelineCard").classList.remove("hidden");
+
+            // Mock sequential progress updates
+            let currentStep = 1;
+            const progressInterval = setInterval(() => {
+                if (currentStep === 1) {
+                    updateStepState(1, "active");
+                    showLoading("Research Agent is mapping tech stack... Please wait.");
+                } else if (currentStep === 2) {
+                    updateStepState(1, "completed");
+                    updateStepState(2, "active");
+                    showLoading("Planning Agent is formulating sprint milestones...");
+                } else if (currentStep === 3) {
+                    updateStepState(2, "completed");
+                    updateStepState(3, "active");
+                    showLoading("Coding Agent is designing database entities & schemas...");
+                } else if (currentStep === 4) {
+                    updateStepState(3, "completed");
+                    updateStepState(4, "active");
+                    showLoading("Testing Agent is building QA test matrices...");
+                } else if (currentStep === 5) {
+                    updateStepState(4, "completed");
+                    updateStepState(5, "active");
+                    showLoading("Documentation Agent is compiling guides and installation logs...");
+                }
+                currentStep++;
+            }, 6000);
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks/create`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${state.token}`
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    clearInterval(progressInterval);
+                    // Mark all steps complete
+                    for(let i=1; i<=5; i++) updateStepState(i, "completed");
+                    showToast("Multi-Agent task compiled successfully!", "success");
+                    
+                    // Reset input
+                    document.getElementById("taskPromptInput").value = "";
+                    
+                    // Force refresh history and go directly to history tab
+                    await syncHistoryLogs();
+                    showView("history");
+                } else {
+                    clearInterval(progressInterval);
+                    showToast(data.error || "Execution pipeline failed", "error");
+                }
+            } catch (err) {
+                clearInterval(progressInterval);
+                showToast("Network connection error running multi-agent workflow.", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function updateStepState(stepNum, status) {
+            const el = document.getElementById(`timeStep${stepNum}`);
+            if (status === "active") {
+                el.className = "absolute -left-8 w-7.5 h-7.5 rounded-full bg-blue-50 border-2 border-blue-600 text-blue-600 flex items-center justify-center text-xs font-bold animate-pulse";
+            } else if (status === "completed") {
+                el.className = "absolute -left-8 w-7.5 h-7.5 rounded-full bg-emerald-500 border-2 border-emerald-500 text-white flex items-center justify-center text-xs font-bold";
+                el.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                el.className = "absolute -left-8 w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold";
+                el.innerText = stepNum;
+            }
+        }
+
+        // ----------------------------------------------------
+        // HISTORY LOGS SYNC & TAB OPERATIONS
+        // ----------------------------------------------------
+        async function syncHistoryLogs() {
+            try {
+                const response = await fetch(`${API_BASE}/tasks`, {
+                    headers: { "Authorization": `Bearer ${state.token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    state.tasks = data.tasks;
+                    renderHistoryTable();
+                    renderDashboardStats();
+                }
+            } catch (err) {
+                console.error("Error syncing history logs", err);
+            }
+        }
+
+        function renderDashboardStats() {
+            const total = state.tasks.length;
+            const completed = state.tasks.filter(t => t.status === "completed").length;
+            
+            document.getElementById("statTotal").innerText = total;
+            document.getElementById("statCompleted").innerText = completed;
+
+            // Render 3 recent items in dashboard
+            const recentBody = document.getElementById("recentTasksTableBody");
+            recentBody.innerHTML = "";
+
+            if (state.tasks.length === 0) {
+                recentBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-gray-400 text-xs font-medium">No recent project tasks found.</td></tr>`;
+                return;
+            }
+
+            state.tasks.slice(0, 3).forEach(task => {
+                const dateStr = new Date(task.createdAt).toLocaleDateString();
+                const statusBadge = task.status === "completed" 
+                    ? `<span class="px-2.5 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded-full uppercase">COMPLETED</span>`
+                    : `<span class="px-2.5 py-1 text-[10px] font-bold bg-blue-100 text-blue-800 rounded-full uppercase">${task.status}</span>`;
+
+                const row = document.createElement("tr");
+                row.className = "hover:bg-slate-50 transition border-b border-gray-100";
+                row.innerHTML = `
+                    <td class="py-3.5 font-semibold text-gray-900 max-w-xs truncate">${task.prompt}</td>
+                    <td class="py-3.5 text-xs text-gray-400 font-mono">${dateStr}</td>
+                    <td class="py-3.5">${statusBadge}</td>
+                    <td class="py-3.5 text-right">
+                        <button onclick="viewTaskDetails('${task.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition">Inspect</button>
+                    </td>
+                `;
+                recentBody.appendChild(row);
+            });
+        }
+
+        function renderHistoryTable() {
+            const body = document.getElementById("historyTableBody");
+            body.innerHTML = "";
+
+            if (state.tasks.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-400 text-xs font-medium">No historical project tasks recorded yet. Create a task in Workspace.</td></tr>`;
+                return;
+            }
+
+            state.tasks.forEach(task => {
+                const dateStr = new Date(task.createdAt).toLocaleString();
+                const shortId = task.id.substring(0, 8);
+                const statusBadge = task.status === "completed" 
+                    ? `<span class="px-2.5 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded-full uppercase">COMPLETED</span>`
+                    : `<span class="px-2.5 py-1 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full uppercase animate-pulse">${task.status}</span>`;
+
+                const row = document.createElement("tr");
+                row.className = "hover:bg-slate-50 transition";
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-mono text-xs font-semibold text-gray-500">${shortId}</td>
+                    <td class="py-4 px-4 font-semibold text-gray-900 max-w-sm truncate">${task.prompt}</td>
+                    <td class="py-4 px-4 text-xs text-gray-400 font-mono">${dateStr}</td>
+                    <td class="py-4 px-4">${statusBadge}</td>
+                    <td class="py-4 px-4 text-right flex gap-2 justify-end">
+                        <button onclick="viewTaskDetails('${task.id}')" class="px-3 py-1.5 bg-slate-900 text-white hover:bg-slate-800 text-xs font-semibold rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-circle-info"></i> Open
+                        </button>
+                        <button onclick="deleteTaskLog('${task.id}')" class="px-2.5 py-1.5 border border-rose-100 hover:bg-rose-50 text-rose-500 rounded-lg text-xs transition">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        function filterHistoryTable() {
+            const val = document.getElementById("historySearchInput").value.toLowerCase();
+            const rows = document.querySelectorAll("#historyTableBody tr");
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                if (text.includes(val)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // ----------------------------------------------------
+        // DETAILED RECORD INSPECTIONS & PDF EXPORTS
+        // ----------------------------------------------------
+        async function viewTaskDetails(taskId) {
+            showLoading("Syncing specifications...");
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+                    headers: { "Authorization": `Bearer ${state.token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    state.currentDetailTask = data.task;
+                    
+                    // Set header banners
+                    document.getElementById("detailPromptHeader").innerText = data.task.prompt;
+                    document.getElementById("detailTimestampHeader").innerText = "Completed at: " + new Date(data.task.createdAt).toLocaleString();
+
+                    // Render default report tab
+                    toggleDetailTab("report");
+
+                    // Bind PDF action
+                    document.getElementById("btnDownloadPDF").onclick = () => exportReportToPDF();
+
+                    showView("taskDetails");
+                } else {
+                    showToast("Could not retrieve task parameters", "error");
+                }
+            } catch (err) {
+                showToast("Network exception syncing details logs.", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function toggleDetailTab(tab) {
+            state.activeDetailTab = tab;
+            
+            const tabs = ["report", "research", "planning", "coding", "testing", "documentation"];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tabDetail_${t}`);
+                if (t === tab) {
+                    btn.className = "pb-3 px-4 text-center font-bold border-b-2 border-blue-600 text-blue-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap";
+                } else {
+                    btn.className = "pb-3 px-4 text-center font-bold border-b-2 border-transparent text-gray-400 hover:text-gray-600 focus:outline-none text-xs uppercase tracking-wider whitespace-nowrap";
+                }
+            });
+
+            // Map and format results text with very basic custom markdown highlight parser for gorgeous view
+            const task = state.currentDetailTask;
+            let rawText = "";
+            if (tab === "report") rawText = task.finalReport || "Pending composition...";
+            else if (tab === "research") rawText = task.researchResult || "Research specifications pending...";
+            else if (tab === "planning") rawText = task.planningResult || "Planning roadmap details pending...";
+            else if (tab === "coding") rawText = task.codingResult || "Folder structure mapping pending...";
+            else if (tab === "testing") rawText = task.testingResult || "QA metrics templates pending...";
+            else if (tab === "documentation") rawText = task.documentationResult || "Installation docs templates pending...";
+
+            renderMarkdownOutput(rawText);
+        }
+
+        // Basic robust manual Markdown parsing for static Vanilla UI styling
+        function renderMarkdownOutput(text) {
+            const panel = document.getElementById("detailPanelContent");
+            if (!text) {
+                panel.innerHTML = "<p class='text-gray-400 text-xs'>No content returned for this agent node.</p>";
+                return;
+            }
+
+            // Simple line-by-line replacement to handle standard Markdown bullet-points and code headers
+            let html = "";
+            const lines = text.split("\n");
+            let inList = false;
+            let inCode = false;
+
+            lines.forEach(line => {
+                let trimmed = line.trim();
+                
+                // Code block toggle
+                if (trimmed.startsWith("```")) {
+                    if (inCode) {
+                        html += "</code></pre>";
+                        inCode = false;
+                    } else {
+                        html += "<pre class='bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 mb-4'><code>";
+                        inCode = true;
+                    }
+                    return;
+                }
+
+                if (inCode) {
+                    html += escapeHTML(line) + "\n";
+                    return;
+                }
+
+                // Headers
+                if (trimmed.startsWith("###")) {
+                    if (inList) { html += "</ul>"; inList = false; }
+                    html += `<h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide mt-6 mb-2 border-l-4 border-blue-500 pl-2">${trimmed.substring(3).trim()}</h4>`;
+                } else if (trimmed.startsWith("##")) {
+                    if (inList) { html += "</ul>"; inList = false; }
+                    html += `<h3 class="text-base font-bold text-gray-900 mt-8 mb-3 border-b pb-1.5">${trimmed.substring(2).trim()}</h3>`;
+                } else if (trimmed.startsWith("#")) {
+                    if (inList) { html += "</ul>"; inList = false; }
+                    html += `<h2 class="text-lg font-bold text-blue-600 mt-10 mb-4">${trimmed.substring(1).trim()}</h2>`;
+                }
+                // Bullet points
+                else if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+                    if (!inList) {
+                        html += "<ul class='list-disc pl-5 space-y-2 mt-2 mb-4 text-xs'>";
+                        inList = true;
+                    }
+                    html += `<li>${parseInlineMarkdown(trimmed.substring(2))}</li>`;
+                }
+                // Plain paragraphs
+                else {
+                    if (inList) { html += "</ul>"; inList = false; }
+                    if (trimmed.length > 0) {
+                        html += `<p class="mt-2.5 mb-2.5 text-xs text-gray-700 leading-relaxed">${parseInlineMarkdown(line)}</p>`;
+                    }
+                }
+            });
+
+            if (inList) { html += "</ul>"; }
+            panel.innerHTML = html;
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function parseInlineMarkdown(text) {
+            // Bold mapping **text** -> <strong>text</strong>
+            let formatted = text;
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong class='font-semibold text-gray-900'>$1</strong>");
+            formatted = formatted.replace(/\*(.*?)\*/g, "<em>$1</em>");
+            formatted = formatted.replace(/`(.*?)`/g, "<code class='bg-slate-100 text-slate-800 px-1 py-0.5 rounded text-[11px] font-mono'>$1</code>");
+            return formatted;
+        }
+
+        async function deleteTaskLog(taskId) {
+            if (!confirm("Are you sure you want to delete this historical task? This cannot be undone.")) return;
+            
+            showLoading("Deleting record...");
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${state.token}` }
+                });
+                if (response.ok) {
+                    showToast("Task deleted successfully", "success");
+                    await syncHistoryLogs();
+                } else {
+                    showToast("Could not delete task from server", "error");
+                }
+            } catch (err) {
+                showToast("Connection failed deleting log.", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // ----------------------------------------------------
+        // CLIENT-SIDE PDF GENERATION USING JSPDF
+        // ----------------------------------------------------
+        function exportReportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const task = state.currentDetailTask;
+            if (!task) return;
+
+            doc.setFont("Helvetica");
+            
+            // Header Banner
+            doc.setFillColor(30, 41, 59); // dark slate bg
+            doc.rect(0, 0, 210, 45, "F");
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(16);
+            doc.setFont("Helvetica", "bold");
+            doc.text("AI MULTI-AGENT BUSINESS WORKSPACE", 14, 18);
+            
+            doc.setFontSize(11);
+            doc.setFont("Helvetica", "normal");
+            doc.setTextColor(191, 219, 254);
+            doc.text("Executive Multi-Agent Deliverable Specification", 14, 25);
+            doc.text("Created: " + new Date(task.createdAt).toLocaleString(), 14, 32);
+
+            // Title
+            doc.setTextColor(15, 23, 42);
+            doc.setFontSize(14);
+            doc.setFont("Helvetica", "bold");
+            doc.text("ORIGINAL BUSINESS REQUEST PROMPT:", 14, 60);
+
+            doc.setFontSize(10);
+            doc.setFont("Helvetica", "italic");
+            doc.setTextColor(71, 85, 105);
+            const splitPrompt = doc.splitTextToSize(task.prompt, 182);
+            doc.text(splitPrompt, 14, 68);
+
+            // Add Executive Report summary
+            doc.setTextColor(37, 99, 235);
+            doc.setFontSize(12);
+            doc.setFont("Helvetica", "bold");
+            doc.text("I. EXECUTIVE SUMMARY", 14, 90);
+
+            doc.setTextColor(51, 65, 85);
+            doc.setFontSize(10);
+            doc.setFont("Helvetica", "normal");
+            const rawSum = task.finalReport ? task.finalReport.substring(0, 800) + "..." : "No Summary Generated.";
+            const splitSummary = doc.splitTextToSize(rawSum, 182);
+            doc.text(splitSummary, 14, 98);
+
+            // Add page 2 with research/tech stack
+            doc.addPage();
+            doc.setTextColor(37, 99, 235);
+            doc.setFontSize(12);
+            doc.setFont("Helvetica", "bold");
+            doc.text("II. DETAILED STACK & TECHNOLOGY SPECIFICATIONS", 14, 20);
+
+            doc.setTextColor(51, 65, 85);
+            doc.setFontSize(10);
+            doc.setFont("Helvetica", "normal");
+            const rawRes = task.researchResult ? task.researchResult.substring(0, 1500) : "No Research Compiled.";
+            const splitResearch = doc.splitTextToSize(rawRes, 182);
+            doc.text(splitResearch, 14, 28);
+
+            // Save PDF
+            doc.save(`Agent_Specification_Report_${task.id.substring(0,8)}.pdf`);
+            showToast("Report PDF generated and downloading!", "success");
+        }
+    </script>
+</body>
+</html>
